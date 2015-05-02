@@ -6,48 +6,48 @@ SD_FUNCTIONS = 0
 SD_MAIN_SCRIPT = 3
 SD_EXTRA_BINARY_DATA = 4
 FN_POS = 0
-FN_NAME = 1
+FN_ID = 1
 FN_ARGS = 2
 
-opcodes = [
-    [0x01,['b','b']],    # unknown
-    [0x02,['d']],        # call function
-    [0x03,['w']],        # unknown
-    [0x04,[]],           # retn?
-    [0x05,[]],           # retn?
-    [0x06,['d']],        # jump?
-    [0x07,['d']],        # cond jump?
-    [0x08,[]],           # unknown
-    [0x09,[]],           # unknown
-    [0x0a,['d']],        # unknown
-    [0x0b,['w']],        # unknown
-    [0x0c,['b']],        # unknown
-    [0x0e,['s']],        # string
-    [0x0f,['w']],        # unknown
-    [0x10,['b']],        # unknown
-    [0x11,['w']],        # unknown
-    [0x12,['b']],        # unknown
-    [0x14,[]],           # unknown
-    [0x15,['w']],        # unknown
-    [0x16,['b']],        # unknown
-    [0x17,['w']],        # unknown
-    [0x18,['b']],        # unknown
-    [0x19,[]],           # unknown
-    [0x1a,[]],           # unknown
-    [0x1b,[]],           # unknown
-    [0x1c,[]],           # unknown
-    [0x1d,[]],           # unknown
-    [0x1e,[]],           # unknown
-    [0x1f,[]],           # unknown
-    [0x20,[]],           # unknown
-    [0x21,[]],           # unknown
-    [0x22,[]],           # unknown
-    [0x23,[]],           # unknown
-    [0x24,[]],           # unknown
-    [0x25,[]],           # unknown
-    [0x26,[]],           # unknown
-    [0x27,[]],           # unknown
-]
+opcodes = {
+    0x01: ['b','b'],    # unknown
+    0x02: ['d'],        # call function
+    0x03: ['w'],        # unknown
+    0x04: [],           # retn?
+    0x05: [],           # retn?
+    0x06: ['d'],        # jump?
+    0x07: ['d'],        # cond jump?
+    0x08: [],           # unknown
+    0x09: [],           # unknown
+    0x0a: ['d'],        # unknown
+    0x0b: ['w'],        # unknown
+    0x0c: ['b'],        # unknown
+    0x0e: ['s'],        # string
+    0x0f: ['w'],        # unknown
+    0x10: ['b'],        # unknown
+    0x11: ['w'],        # unknown
+    0x12: ['b'],        # unknown
+    0x14: [],           # unknown
+    0x15: ['w'],        # unknown
+    0x16: ['b'],        # unknown
+    0x17: ['w'],        # unknown
+    0x18: ['b'],        # unknown
+    0x19: [],           # unknown
+    0x1a: [],           # unknown
+    0x1b: [],           # unknown
+    0x1c: [],           # unknown
+    0x1d: [],           # unknown
+    0x1e: [],           # unknown
+    0x1f: [],           # unknown
+    0x20: [],           # unknown
+    0x21: [],           # unknown
+    0x22: [],           # unknown
+    0x23: [],           # unknown
+    0x24: [],           # unknown
+    0x25: [],           # unknown
+    0x26: [],           # unknown
+    0x27: [],           # unknown
+}
 
 def get_data(filename):
     totalbytes = os.path.getsize(filename)
@@ -73,36 +73,28 @@ def extract(filename):
     while pos < script_len:
         if pos == main_script_start:
             target = script_data[SD_MAIN_SCRIPT]
-        opcode = struct.unpack('<B',file_data[pos:pos+1])[0]
+        opcode_id = struct.unpack('<B',file_data[pos:pos+1])[0]
 
-        c = 0
-        while c != len(opcodes):
-            if opcodes[c][0] == opcode:
-                variablecount = opcodes[c][1]
-                name = opcodes[c][0]
-                break
-            if c+1 == len(opcodes):
-                print 'Unknown script opcode: %x at loc: %x' % (opcode,pos)
-                sys.exit()
-            c += 1
+        if opcode_id not in opcodes:
+            raise RuntimeError('Unknown opcode: %x at loc: %x' % (opcode_id, pos))
 
         func = {
             FN_POS: pos,
-            FN_NAME: name,
+            FN_ID: opcode_id,
             FN_ARGS: []
         }
         pos += 1
-        for i in xrange(0, len(variablecount)):
-            if variablecount[i] == 'b':
+        for type in opcodes[opcode_id]:
+            if type == 'b':
                 func[FN_ARGS].append(struct.unpack('<B',file_data[pos:pos+1])[0])
                 pos += 1
-            elif variablecount[i] == 'w':
+            elif type == 'w':
                 func[FN_ARGS].append(struct.unpack('<H',file_data[pos:pos+2])[0])
                 pos += 2
-            elif variablecount[i] == 'd':
+            elif type == 'd':
                 func[FN_ARGS].append(struct.unpack('<I',file_data[pos:pos+4])[0])
                 pos += 4
-            elif variablecount[i] == 's':
+            elif type == 's':
                 stringlen = struct.unpack('<B',file_data[pos:pos+1])[0]
                 pos += 1
                 func[FN_ARGS].append(strcount)
@@ -110,7 +102,7 @@ def extract(filename):
                 pos += stringlen
                 strcount += 1
             else:
-                print 'Variable type error for opcode %x at loc %x' % (opcode,pos)
+                print 'Variable type error for opcode %x at loc %x' % (opcode_id, pos)
                 sys.exit()
 
         target.append(func)
@@ -135,26 +127,21 @@ def comp():
     #prepare jump translation table
     for section in [SD_FUNCTIONS, SD_MAIN_SCRIPT]:
         for func in script_data[section]:
-            c = 0
-            while c != len(opcodes):
-                if opcodes[c][0] == func[FN_NAME]:
-                    full_script[func[FN_POS]] = pos
-                    variables = opcodes[c][1]
-                    break
-                if c+1 == len(opcodes):
-                    print 'Unknown script opcode: %s' % (func[FN_NAME])
-                    sys.exit()
-                c += 1
+            opcode_id = func[FN_ID]
+            if opcode_id not in opcodes:
+                raise RuntimeError('Unknown script opcode: %s' % opcode_id)
+            full_script[func[FN_POS]] = pos
             pos += 1
-            for a in range(0,len(variables)):
-                arg = func[FN_ARGS][a]
-                if variables[a] == 'b':
+
+            for i, type in enumerate(opcodes[opcode_id]):
+                arg = func[FN_ARGS][i]
+                if type == 'b':
                     pos += 1
-                elif variables[a] == 'w':
+                elif type == 'w':
                     pos += 2
-                elif variables[a] == 'd':
+                elif type == 'd':
                     pos += 4
-                elif variables[a] == 's':
+                elif type == 's':
                     pos += 1
                     pos += len(strings[arg]) + 1
 
@@ -165,40 +152,33 @@ def comp():
             break
 
         for func in functions:
-            c = 0
-            while c != len(opcodes):
-                if opcodes[c][0] == func[FN_NAME]:
-                    new_file_data += struct.pack('<B',opcodes[c][0])
-                    variables = opcodes[c][1]
-                    break
-                if c+1 == len(opcodes):
-                    print 'Unknown script opcode: %s' % (func[FN_NAME])
-                    sys.exit()
-                c += 1
+            opcode_id = func[FN_ID]
+            if opcode_id not in opcodes:
+                raise RuntimeError('Unknown script opcode: %s' % opcode_id)
+            new_file_data += struct.pack('<B',opcode_id)
 
-            for a in range(0,len(variables)):
-                arg = func[FN_ARGS][a]
-
-                if variables[a] == 'b':
+            for i, type in enumerate(opcodes[opcode_id]):
+                arg = func[FN_ARGS][i]
+                if type == 'b':
                     new_file_data += struct.pack('<B',arg)
-                elif variables[a] == 'w':
+                elif type == 'w':
                     new_file_data += struct.pack('<H',arg)
-                elif variables[a] == 'd':
-                    if opcodes[c][0] == 0x2 or opcodes[c][0] == 0x6 or opcodes[c][0] == 0x7:
+                elif type == 'd':
+                    if opcode_id == 0x2 or opcode_id == 0x6 or opcode_id == 0x7:
                         new_file_data += struct.pack('<I',full_script[arg])
-                    elif opcodes[c][0] == 0xa:
+                    elif opcode_id == 0xa:
                         if arg in full_script:
                             new_file_data += struct.pack('<I',full_script[arg])
                         else:
                             new_file_data += struct.pack('<I',arg)
                     else:
                         new_file_data += struct.pack('<I',arg)
-                elif variables[a] == 's':
+                elif type == 's':
                     new_file_data += struct.pack('<B',len(strings[arg]) + 1)
                     new_file_data += strings[arg]
                     new_file_data += b'\0'
                 else:
-                    print 'Variable type error for opcode %x' % (opcodes[c][0])
+                    print 'Variable type error for opcode %x' % (opcode_id)
                     sys.exit()
 
     new_file_data = struct.pack('<I',len(new_file_data)) + new_file_data[4:]
