@@ -1,7 +1,7 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 import os, sys, struct
 import marshal
-from cStringIO import StringIO
+from io import BytesIO
 
 SD_FUNCTIONS = 0
 SD_MAIN_SCRIPT = 3
@@ -108,7 +108,7 @@ def decompile(file_name):
     with open('script.dat', 'wb') as script_file:
         marshal.dump(script_data, script_file)
     with open('strings.txt', 'wb') as strings_file:
-        strings_file.write("\n".join(strings).decode('sjis').encode('utf8'))
+        strings_file.write(b"\n".join(strings).decode('sjis').encode('utf8'))
 
 def compile(file_name):
     script_data = marshal.loads(get_data('script.dat'))
@@ -140,7 +140,7 @@ def compile(file_name):
                     pos += len(strings[arg]) + 1
 
     #construct real data
-    new_file_data = StringIO()
+    new_file_data = BytesIO()
     for section in [SD_FUNCTIONS, SD_MAIN_SCRIPT]:
         for func in script_data[section]:
             opcode_id = func[FN_ID]
@@ -185,10 +185,10 @@ def main():
         elif sys.argv[1] == '-c':
             compile(sys.argv[2])
             return
-    print 'Usage: script.py -e input.hcb'
-    print 'Usage: script.py -c output.hcb'
-    print '-e: extracts strings.txt + script.dat from the input.hcb script file'
-    print '-c: compiles strings.txt + script.dat back into a output.hcb to use in game'
+    print('Usage: script.py -e input.hcb')
+    print('Usage: script.py -c output.hcb')
+    print('-e: extracts strings.txt + script.dat from the input.hcb script file')
+    print('-c: compiles strings.txt + script.dat back into a output.hcb to use in game')
 
 if __name__ == '__main__':
     main()
