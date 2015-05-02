@@ -190,7 +190,7 @@ def compile(filename):
     hcb_file.close()
 
 def main():
-    if len(sys.argv) > 1:
+    if len(sys.argv) == 3:
         if sys.argv[1] == '-e':
             decompile(sys.argv[2])
             return
