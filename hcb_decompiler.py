@@ -1,5 +1,5 @@
 #!/usr/bin/python2
-import os,sys,struct
+import os, sys, struct
 import marshal
 
 SD_FUNCTIONS = 0
@@ -10,7 +10,7 @@ FN_ID = 1
 FN_ARGS = 2
 
 opcodes = {
-    0x01: ['b','b'],    # unknown
+    0x01: ['b', 'b'],   # unknown
     0x02: ['d'],        # call function
     0x03: ['w'],        # unknown
     0x04: [],           # retn?
@@ -57,8 +57,8 @@ def get_data(filename):
 
 def extract(filename):
     file_data = get_data(filename)
-    script_len = struct.unpack('<I',file_data[:0x4])[0]
-    main_script_start = struct.unpack('<I',file_data[script_len:script_len+0x4])[0]
+    script_len = struct.unpack('<I', file_data[:0x4])[0]
+    main_script_start = struct.unpack('<I', file_data[script_len:script_len+0x4])[0]
 
     script_data = {
         SD_FUNCTIONS: [],
@@ -73,7 +73,7 @@ def extract(filename):
     while pos < script_len:
         if pos == main_script_start:
             target = script_data[SD_MAIN_SCRIPT]
-        opcode_id = struct.unpack('<B',file_data[pos:pos+1])[0]
+        opcode_id = struct.unpack('<B', file_data[pos:pos+1])[0]
 
         if opcode_id not in opcodes:
             raise RuntimeError('Unknown opcode: %x at loc: %x' % (opcode_id, pos))
@@ -86,16 +86,16 @@ def extract(filename):
         pos += 1
         for type in opcodes[opcode_id]:
             if type == 'b':
-                func[FN_ARGS].append(struct.unpack('<B',file_data[pos:pos+1])[0])
+                func[FN_ARGS].append(struct.unpack('<B', file_data[pos:pos+1])[0])
                 pos += 1
             elif type == 'w':
-                func[FN_ARGS].append(struct.unpack('<H',file_data[pos:pos+2])[0])
+                func[FN_ARGS].append(struct.unpack('<H', file_data[pos:pos+2])[0])
                 pos += 2
             elif type == 'd':
-                func[FN_ARGS].append(struct.unpack('<I',file_data[pos:pos+4])[0])
+                func[FN_ARGS].append(struct.unpack('<I', file_data[pos:pos+4])[0])
                 pos += 4
             elif type == 's':
-                stringlen = struct.unpack('<B',file_data[pos:pos+1])[0]
+                stringlen = struct.unpack('<B', file_data[pos:pos+1])[0]
                 pos += 1
                 func[FN_ARGS].append(strcount)
                 strings.append(file_data[pos:pos+stringlen-1])
@@ -109,17 +109,17 @@ def extract(filename):
 
     script_data[SD_EXTRA_BINARY_DATA] = file_data[script_len+0x4:len(file_data)]
 
-    script_file = open('script.dat','wb')
+    script_file = open('script.dat', 'wb')
     marshal.dump(script_data, script_file)
     script_file.close()
-    strings_file = open('strings.txt','wb')
+    strings_file = open('strings.txt', 'wb')
     strings_file.write("\n".join(strings).decode('sjis').encode('utf8'))
     strings_file.close()
 
 def comp():
     script_data = marshal.loads(get_data('script.dat'))
     strings = get_data('strings.txt').decode('utf8').encode('sjis').splitlines()
-    new_file_data = struct.pack('<I',0x0)
+    new_file_data = struct.pack('<I', 0x0)
 
     pos = len(new_file_data)
     full_script = {}
@@ -155,37 +155,37 @@ def comp():
             opcode_id = func[FN_ID]
             if opcode_id not in opcodes:
                 raise RuntimeError('Unknown script opcode: %s' % opcode_id)
-            new_file_data += struct.pack('<B',opcode_id)
+            new_file_data += struct.pack('<B', opcode_id)
 
             for i, type in enumerate(opcodes[opcode_id]):
                 arg = func[FN_ARGS][i]
                 if type == 'b':
-                    new_file_data += struct.pack('<B',arg)
+                    new_file_data += struct.pack('<B', arg)
                 elif type == 'w':
-                    new_file_data += struct.pack('<H',arg)
+                    new_file_data += struct.pack('<H', arg)
                 elif type == 'd':
                     if opcode_id == 0x2 or opcode_id == 0x6 or opcode_id == 0x7:
-                        new_file_data += struct.pack('<I',full_script[arg])
+                        new_file_data += struct.pack('<I', full_script[arg])
                     elif opcode_id == 0xa:
                         if arg in full_script:
-                            new_file_data += struct.pack('<I',full_script[arg])
+                            new_file_data += struct.pack('<I', full_script[arg])
                         else:
-                            new_file_data += struct.pack('<I',arg)
+                            new_file_data += struct.pack('<I', arg)
                     else:
-                        new_file_data += struct.pack('<I',arg)
+                        new_file_data += struct.pack('<I', arg)
                 elif type == 's':
-                    new_file_data += struct.pack('<B',len(strings[arg]) + 1)
+                    new_file_data += struct.pack('<B', len(strings[arg]) + 1)
                     new_file_data += strings[arg]
                     new_file_data += b'\0'
                 else:
                     print 'Variable type error for opcode %x' % (opcode_id)
                     sys.exit()
 
-    new_file_data = struct.pack('<I',len(new_file_data)) + new_file_data[4:]
-    new_file_data += struct.pack('<I',main_script_start)
+    new_file_data = struct.pack('<I', len(new_file_data)) + new_file_data[4:]
+    new_file_data += struct.pack('<I', main_script_start)
     new_file_data += script_data[SD_EXTRA_BINARY_DATA]
 
-    hcb_file = open('Snow.hcb.new','wb')
+    hcb_file = open('Snow.hcb.new', 'wb')
     hcb_file.write(new_file_data)
     hcb_file.close()
 
