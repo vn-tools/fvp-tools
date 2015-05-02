@@ -1,6 +1,7 @@
 #!/usr/bin/python2
 import os, sys, struct
 import marshal
+from cStringIO import StringIO
 
 SD_FUNCTIONS = 0
 SD_MAIN_SCRIPT = 3
@@ -139,43 +140,42 @@ def compile(file_name):
                     pos += len(strings[arg]) + 1
 
     #construct real data
-    new_file_data = ''
+    new_file_data = StringIO()
     for section in [SD_FUNCTIONS, SD_MAIN_SCRIPT]:
         for func in script_data[section]:
             opcode_id = func[FN_ID]
             if opcode_id not in opcodes:
                 raise RuntimeError('Unknown script opcode: %s' % opcode_id)
-            new_file_data += struct.pack('<B', opcode_id)
+            new_file_data.write(struct.pack('<B', opcode_id))
 
             for i, type in enumerate(opcodes[opcode_id]):
                 arg = func[FN_ARGS][i]
                 if type == 'b':
-                    new_file_data += struct.pack('<B', arg)
+                    new_file_data.write(struct.pack('<B', arg))
                 elif type == 'w':
-                    new_file_data += struct.pack('<H', arg)
+                    new_file_data.write(struct.pack('<H', arg))
                 elif type == 'd':
                     if opcode_id == 0x2 or opcode_id == 0x6 or opcode_id == 0x7:
-                        new_file_data += struct.pack('<I', jump_table[arg])
+                        new_file_data.write(struct.pack('<I', jump_table[arg]))
                     elif opcode_id == 0xa:
                         if arg in jump_table:
-                            new_file_data += struct.pack('<I', jump_table[arg])
+                            new_file_data.write(struct.pack('<I', jump_table[arg]))
                         else:
-                            new_file_data += struct.pack('<I', arg)
+                            new_file_data.write(struct.pack('<I', arg))
                     else:
-                        new_file_data += struct.pack('<I', arg)
+                        new_file_data.write(struct.pack('<I', arg))
                 elif type == 's':
-                    new_file_data += struct.pack('<B', len(strings[arg]) + 1)
-                    new_file_data += strings[arg]
-                    new_file_data += b'\0'
+                    new_file_data.write(struct.pack('<B', len(strings[arg]) + 1))
+                    new_file_data.write(strings[arg])
+                    new_file_data.write(b'\0')
                 else:
                     raise RuntimeError('Variable type error for opcode %x' % (opcode_id))
 
-    new_file_data = struct.pack('<I', len(new_file_data) + 4) + new_file_data
-    new_file_data += struct.pack('<I', main_script_start)
-    new_file_data += script_data[SD_EXTRA_BINARY_DATA]
-
     with open(file_name, 'wb') as hcb_file:
-        hcb_file.write(new_file_data)
+        hcb_file.write(struct.pack('<I', new_file_data.tell() + 4))
+        hcb_file.write(new_file_data.getvalue())
+        hcb_file.write(struct.pack('<I', main_script_start))
+        hcb_file.write(script_data[SD_EXTRA_BINARY_DATA])
 
 def main():
     if len(sys.argv) == 3:
