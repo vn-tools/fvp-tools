@@ -55,7 +55,7 @@ def get_data(filename):
     totalfile_data = infile.read(totalbytes)
     return totalfile_data
 
-def extract(filename):
+def decompile(filename):
     file_data = get_data(filename)
     script_len = struct.unpack('<I', file_data[:0x4])[0]
     main_script_start = struct.unpack('<I', file_data[script_len:script_len+0x4])[0]
@@ -116,7 +116,7 @@ def extract(filename):
     strings_file.write("\n".join(strings).decode('sjis').encode('utf8'))
     strings_file.close()
 
-def comp():
+def compile(filename):
     script_data = marshal.loads(get_data('script.dat'))
     strings = get_data('strings.txt').decode('utf8').encode('sjis').splitlines()
     new_file_data = struct.pack('<I', 0x0)
@@ -185,22 +185,22 @@ def comp():
     new_file_data += struct.pack('<I', main_script_start)
     new_file_data += script_data[SD_EXTRA_BINARY_DATA]
 
-    hcb_file = open('Snow.hcb.new', 'wb')
+    hcb_file = open(filename, 'wb')
     hcb_file.write(new_file_data)
     hcb_file.close()
 
 def main():
     if len(sys.argv) > 1:
         if sys.argv[1] == '-e':
-            extract(sys.argv[2])
+            decompile(sys.argv[2])
             return
         elif sys.argv[1] == '-c':
-            comp()
+            compile(sys.argv[2])
             return
-    print 'Usage: script.py -e Snow.hcb'
-    print 'Usage: script.py -c'
-    print '-e: extracts the .hcb script file (Snow.hcb)'
-    print '-c: compile strings.txt + script.dat back into a Snow.hcb.new to use in game'
+    print 'Usage: script.py -e input.hcb'
+    print 'Usage: script.py -c output.hcb'
+    print '-e: extracts strings.txt + script.dat from the input.hcb script file'
+    print '-c: compiles strings.txt + script.dat back into a output.hcb to use in game'
 
 if __name__ == '__main__':
     main()
