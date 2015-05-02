@@ -122,7 +122,7 @@ def compile(filename):
     new_file_data = struct.pack('<I', 0x0)
 
     pos = len(new_file_data)
-    full_script = {}
+    jump_table = {}
 
     #prepare jump translation table
     for section in [SD_FUNCTIONS, SD_MAIN_SCRIPT]:
@@ -130,7 +130,7 @@ def compile(filename):
             opcode_id = func[FN_ID]
             if opcode_id not in opcodes:
                 raise RuntimeError('Unknown script opcode: %s' % opcode_id)
-            full_script[func[FN_POS]] = pos
+            jump_table[func[FN_POS]] = pos
             pos += 1
 
             for i, type in enumerate(opcodes[opcode_id]):
@@ -165,10 +165,10 @@ def compile(filename):
                     new_file_data += struct.pack('<H', arg)
                 elif type == 'd':
                     if opcode_id == 0x2 or opcode_id == 0x6 or opcode_id == 0x7:
-                        new_file_data += struct.pack('<I', full_script[arg])
+                        new_file_data += struct.pack('<I', jump_table[arg])
                     elif opcode_id == 0xa:
-                        if arg in full_script:
-                            new_file_data += struct.pack('<I', full_script[arg])
+                        if arg in jump_table:
+                            new_file_data += struct.pack('<I', jump_table[arg])
                         else:
                             new_file_data += struct.pack('<I', arg)
                     else:
