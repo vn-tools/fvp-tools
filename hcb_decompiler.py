@@ -2,43 +2,43 @@
 import os,sys,struct,re
 
 opcodes = [
-    [0x1,'0x1',['b','b']],
-    [0x2,'call-func',['d']],
-    [0x3,'0x3',['w']],
-    [0x4,'0x4-retn?',[]],
-    [0x5,'0x5-retn?',[]],
-    [0x6,'0x6-jump?',['d']],
-    [0x7,'0x7-condjump?',['d']],
-    [0x8,'0x8',[]],
-    [0x9,'0x9',[]],
-    [0xa,'0xa',['d']],
-    [0xb,'0xb',['w']],
-    [0xc,'0xc',['b']],
-    [0xe,'string',['b','s']],
-    [0xf,'0xf',['w']],
-    [0x10,'0x10',['b']],
-    [0x11,'0x11',['w']],
-    [0x12,'0x12',['b']],
-    [0x14,'0x14',[]],
-    [0x15,'0x15',['w']],
-    [0x16,'0x16',['b']],
-    [0x17,'0x17',['w']],
-    [0x18,'0x18',['b']],
-    [0x19,'0x19',[]],
-    [0x1a,'0x1a',[]],
-    [0x1b,'0x1b',[]],
-    [0x1c,'0x1c',[]],
-    [0x1d,'0x1d',[]],
-    [0x1e,'0x1e',[]],
-    [0x1f,'0x1f',[]],
-    [0x20,'0x20',[]],
-    [0x21,'0x21',[]],
-    [0x22,'0x22',[]],
-    [0x23,'0x23',[]],
-    [0x24,'0x24',[]],
-    [0x25,'0x25',[]],
-    [0x26,'0x26',[]],
-    [0x27,'0x27',[]],
+    [0x01,['b','b']],    # unknown
+    [0x02,['d']],        # call function
+    [0x03,['w']],        # unknown
+    [0x04,[]],           # retn?
+    [0x05,[]],           # retn?
+    [0x06,['d']],        # jump?
+    [0x07,['d']],        # cond jump?
+    [0x08,[]],           # unknown
+    [0x09,[]],           # unknown
+    [0x0a,['d']],        # unknown
+    [0x0b,['w']],        # unknown
+    [0x0c,['b']],        # unknown
+    [0x0e,['b','s']],    # string
+    [0x0f,['w']],        # unknown
+    [0x10,['b']],        # unknown
+    [0x11,['w']],        # unknown
+    [0x12,['b']],        # unknown
+    [0x14,[]],           # unknown
+    [0x15,['w']],        # unknown
+    [0x16,['b']],        # unknown
+    [0x17,['w']],        # unknown
+    [0x18,['b']],        # unknown
+    [0x19,[]],           # unknown
+    [0x1a,[]],           # unknown
+    [0x1b,[]],           # unknown
+    [0x1c,[]],           # unknown
+    [0x1d,[]],           # unknown
+    [0x1e,[]],           # unknown
+    [0x1f,[]],           # unknown
+    [0x20,[]],           # unknown
+    [0x21,[]],           # unknown
+    [0x22,[]],           # unknown
+    [0x23,[]],           # unknown
+    [0x24,[]],           # unknown
+    [0x25,[]],           # unknown
+    [0x26,[]],           # unknown
+    [0x27,[]],           # unknown
 ]
 
 def get_data(filename):
@@ -79,8 +79,8 @@ def extract(filename):
         c = 0
         while c != len(opcodes):
             if opcodes[c][0] == opcode:
-                variablecount = opcodes[c][2]
-                name = opcodes[c][1]
+                variablecount = opcodes[c][1]
+                name = opcodes[c][0]
                 break;
             if c+1 == len(opcodes):
                 print 'Unknown script opcode: %x at loc: %x' % (opcode,pos)
@@ -164,9 +164,9 @@ def comp():
                 line = scriptdata[i].split(' ')
                 c = 0
                 while c != len(opcodes):
-                    if opcodes[c][1] == line[2]:
+                    if opcodes[c][0] == int(line[2]):
                         fullscript[int(line[0],16)] = pos
-                        variables = opcodes[c][2]
+                        variables = opcodes[c][1]
                         break;
                     if c+1 == len(opcodes):
                         print 'Unknown script opcode: %s on line: %d' % (line[2],i)
@@ -220,9 +220,9 @@ def comp():
 
                 c = 0
                 while c != len(opcodes):
-                    if opcodes[c][1] == line[2]:
+                    if opcodes[c][0] == int(line[2]):
                         newfiledata += struct.pack('<B',opcodes[c][0])
-                        variables = opcodes[c][2]
+                        variables = opcodes[c][1]
                         break;
                     if c+1 == len(opcodes):
                         print 'Unknown script opcode: %s on line: %d' % (line[2],i)
