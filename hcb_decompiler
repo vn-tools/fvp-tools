@@ -188,7 +188,7 @@ def main():
     print('Usage: script.py -d input.hcb')
     print('Usage: script.py -c output.hcb')
     print('-d: extracts strings.txt + script.dat from the input.hcb script file')
-    print('-c: compiles strings.txt + script.dat back into a output.hcb to use in game')
+    print('-c: compiles strings.txt + script.dat back into an output.hcb script file to use in game')
 
 if __name__ == '__main__':
     main()
