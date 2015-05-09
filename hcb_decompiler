@@ -179,15 +179,15 @@ def compile(file_name):
 
 def main():
     if len(sys.argv) == 3:
-        if sys.argv[1] == '-e':
+        if sys.argv[1] == '-d':
             decompile(sys.argv[2])
             return
         elif sys.argv[1] == '-c':
             compile(sys.argv[2])
             return
-    print('Usage: script.py -e input.hcb')
+    print('Usage: script.py -d input.hcb')
     print('Usage: script.py -c output.hcb')
-    print('-e: extracts strings.txt + script.dat from the input.hcb script file')
+    print('-d: extracts strings.txt + script.dat from the input.hcb script file')
     print('-c: compiles strings.txt + script.dat back into a output.hcb to use in game')
 
 if __name__ == '__main__':
