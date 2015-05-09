@@ -1,10 +1,18 @@
-HCB compiler
-------------
+FVP tools
+---------
 
-Script (de)compiler for games based on FVP engine.
+Tools for translating games based on FVP engine.
 
-Original author:
-[SaintLouisX](http://www.hongfire.com/forum/showthread.php/433568).
+### `bin_archiver`
+
+BIN archive packer and unpacker. Does not convert images for performance
+reasons: if you often need to repack, converting *all* images would take too
+much time. Instead, you select one image to convert, and then pack the files.
+
+### `hcb_compiler`
+
+Script (de)compiler (original author -
+[SaintLouisX](http://www.hongfire.com/forum/showthread.php/433568))
 
 Modifications from original version:
 
