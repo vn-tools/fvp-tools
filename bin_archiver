@@ -82,6 +82,10 @@ def main():
     print('Usage: script.py -c folder output.bin')
     print('-d: extracts files from the input.bin archive file into given folder')
     print('-c: packs given folder back into an output.bin to use in game')
+    print('')
+    print('NOTE: when packing, make sure the folder doesn\'t contain any files other')
+    print('than files unpacked from original archive, otherwise the game will crash.')
+    print('This is a limitation of FVP games since they expect a fixed number of files.')
 
 if __name__ == '__main__':
     main()
