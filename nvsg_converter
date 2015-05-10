@@ -36,7 +36,6 @@ def convert_to_png(input_file, output_file):
 
     data = input_file.read_until_end()
     data = zlib.decompress(data)
-    print(input_file.name, unk)
 
     if format == 0:
         img = swap_channels(Image.fromstring('RGB', (width, height), data))
