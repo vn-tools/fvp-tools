@@ -71,7 +71,7 @@ def convert_from_png(input_file, output_file, image_count, x, y):
         format = 0
         img = swap_channels(img)
 
-    data = img.tobytes()
+    data = img.tostring()
 
     output_file.write(HZC1_MAGIC)
     output_file.write_u32_le(len(data))
