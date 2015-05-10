@@ -57,6 +57,7 @@ def convert_to_png(input_file, output_file):
 
 def convert_from_png(input_file, output_file, image_count, x, y):
     img = Image.open(input_file)
+    img.load()
     width, height = img.size
     if image_count != 1:
         if img.mode != 'RGBA':
