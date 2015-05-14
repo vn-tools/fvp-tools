@@ -20,7 +20,7 @@ opcodes = {
     0x07: ['d'],        #cond jump?
     0x08: [],           #unknown
     0x09: [],           #unknown
-    0x0a: ['d'],        #unknown
+    0x0a: ['d'],        #play sound file
     0x0b: ['w'],        #unknown
     0x0c: ['b'],        #unknown
     0x0e: ['s'],        #string
@@ -157,11 +157,6 @@ def compile(file_name):
                 elif type == 'd':
                     if opcode_id == 0x2 or opcode_id == 0x6 or opcode_id == 0x7:
                         new_file_data.write(struct.pack('<I', jump_table[arg]))
-                    elif opcode_id == 0xa:
-                        if arg in jump_table:
-                            new_file_data.write(struct.pack('<I', jump_table[arg]))
-                        else:
-                            new_file_data.write(struct.pack('<I', arg))
                     else:
                         new_file_data.write(struct.pack('<I', arg))
                 elif type == 's':
