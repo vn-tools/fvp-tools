@@ -20,7 +20,7 @@ opcodes = {
     0x07: ['d'],        #cond jump?
     0x08: [],           #unknown
     0x09: [],           #unknown
-    0x0a: ['d'],        #play sound file
+    0x0a: ['d'],        #unknown
     0x0b: ['w'],        #unknown
     0x0c: ['b'],        #unknown
     0x0e: ['s'],        #string
@@ -172,9 +172,19 @@ def compile(file_name):
     #construct real data
     new_file_data = BytesIO()
     for section in [SD_FUNCTIONS, SD_MAIN_SCRIPT]:
-        for func in script_data[section]:
+        for i, func in enumerate(script_data[section]):
             if func[FN_ID] in [2, 6, 7]:
                 func[FN_ARGS][0] = jump_table[func[FN_ARGS][0]]
+            elif func[FN_ID] == 0xa:
+                prev_func = script_data[section][i - 1]
+                try:
+                    #0xa preceded by 2 most likely means a sound file number;
+                    #sound file numbers shouldn't be translated.
+                    #(other than that, I really have no idea what I'm doing.)
+                    if prev_func[FN_ID] != 2:
+                        func[FN_ARGS][0] = jump_table[func[FN_ARGS][0]]
+                except:
+                    pass
             write_func(new_file_data, func)
 
     with open(file_name, 'wb') as hcb_file:
