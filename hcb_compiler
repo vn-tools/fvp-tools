@@ -54,7 +54,7 @@ def get_data(file_name):
     with open(file_name, 'rb') as file:
         return file.read()
 
-def get_func_size(func, strings):
+def get_func_size(func):
     opcode_id = func[FN_ID]
     size = 1
     for i, type in enumerate(opcodes[opcode_id]):
@@ -67,7 +67,7 @@ def get_func_size(func, strings):
             size += 4
         elif type == 's':
             size += 1
-            size += len(strings[arg])
+            size += len(arg[1])
             size += 1
         else:
             raise AssertionError('Bad argument')
@@ -94,14 +94,15 @@ def read_func(io, strings):
             func[FN_ARGS].append(struct.unpack('<I', io.read(4))[0])
         elif type == 's':
             string_len = struct.unpack('B', io.read(1))[0]
-            func[FN_ARGS].append(len(strings))
-            strings.append(io.read(string_len)[:-1])
+            string = io.read(string_len)[:-1]
+            func[FN_ARGS].append([len(strings), string])
+            strings.append(string)
         else:
             raise AssertionError('Bad argument')
 
     return func
 
-def write_func(io, func, strings):
+def write_func(io, func):
     opcode_id = func[FN_ID]
     if opcode_id not in opcodes:
         raise RuntimeError('Unknown script opcode: %s' % opcode_id)
@@ -116,8 +117,8 @@ def write_func(io, func, strings):
         elif type == 'd':
             io.write(struct.pack('<I', arg))
         elif type == 's':
-            io.write(struct.pack('B', len(strings[arg]) + 1))
-            io.write(strings[arg])
+            io.write(struct.pack('B', len(arg[1]) + 1))
+            io.write(arg[1])
             io.write(b'\0')
         else:
             raise AssertionError('Bad argument')
@@ -163,8 +164,10 @@ def compile(file_name):
         if section == SD_MAIN_SCRIPT:
             main_script_start = pos
         for func in script_data[section]:
+            if func[FN_ID] == 0xe:
+                func[FN_ARGS][0][1] = strings[func[FN_ARGS][0][0]]
             jump_table[func[FN_POS]] = pos
-            pos += get_func_size(func, strings)
+            pos += get_func_size(func)
 
     #construct real data
     new_file_data = BytesIO()
@@ -172,7 +175,7 @@ def compile(file_name):
         for func in script_data[section]:
             if func[FN_ID] in [2, 6, 7]:
                 func[FN_ARGS][0] = jump_table[func[FN_ARGS][0]]
-            write_func(new_file_data, func, strings)
+            write_func(new_file_data, func)
 
     with open(file_name, 'wb') as hcb_file:
         hcb_file.write(struct.pack('<I', new_file_data.tell() + 4))
