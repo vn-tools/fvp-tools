@@ -54,10 +54,79 @@ def get_data(file_name):
     with open(file_name, 'rb') as file:
         return file.read()
 
+def get_func_size(func, strings):
+    opcode_id = func[FN_ID]
+    size = 1
+    for i, type in enumerate(opcodes[opcode_id]):
+        arg = func[FN_ARGS][i]
+        if type == 'b':
+            size += 1
+        elif type == 'w':
+            size += 2
+        elif type == 'd':
+            size += 4
+        elif type == 's':
+            size += 1
+            size += len(strings[arg])
+            size += 1
+        else:
+            raise AssertionError('Bad argument')
+    return size
+
+def read_func(io, strings):
+    pos = io.tell()
+    opcode_id = struct.unpack('B', io.read(1))[0]
+    if opcode_id not in opcodes:
+        raise RuntimeError('Unknown opcode: %x at loc: %x' % (opcode_id, pos))
+
+    func = {
+        FN_POS: pos,
+        FN_ID: opcode_id,
+        FN_ARGS: []
+    }
+
+    for type in opcodes[opcode_id]:
+        if type == 'b':
+            func[FN_ARGS].append(struct.unpack('B', io.read(1))[0])
+        elif type == 'w':
+            func[FN_ARGS].append(struct.unpack('<H', io.read(2))[0])
+        elif type == 'd':
+            func[FN_ARGS].append(struct.unpack('<I', io.read(4))[0])
+        elif type == 's':
+            string_len = struct.unpack('B', io.read(1))[0]
+            func[FN_ARGS].append(len(strings))
+            strings.append(io.read(string_len)[:-1])
+        else:
+            raise AssertionError('Bad argument')
+
+    return func
+
+def write_func(io, func, strings):
+    opcode_id = func[FN_ID]
+    if opcode_id not in opcodes:
+        raise RuntimeError('Unknown script opcode: %s' % opcode_id)
+    io.write(struct.pack('B', opcode_id))
+
+    for i, type in enumerate(opcodes[opcode_id]):
+        arg = func[FN_ARGS][i]
+        if type == 'b':
+            io.write(struct.pack('B', arg))
+        elif type == 'w':
+            io.write(struct.pack('<H', arg))
+        elif type == 'd':
+            io.write(struct.pack('<I', arg))
+        elif type == 's':
+            io.write(struct.pack('B', len(strings[arg]) + 1))
+            io.write(strings[arg])
+            io.write(b'\0')
+        else:
+            raise AssertionError('Bad argument')
+
 def decompile(file_name):
-    file_data = get_data(file_name)
-    script_len = struct.unpack('<I', file_data[:4])[0]
-    main_script_start = struct.unpack('<I', file_data[script_len:script_len + 4])[0]
+    file_data = BytesIO(get_data(file_name))
+    script_len = struct.unpack('<I', file_data.read(4))[0]
+    file_data.seek(script_len)
+    main_script_start = struct.unpack('<I', file_data.read(4))[0]
 
     script_data = {
         SD_FUNCTIONS: [],
@@ -66,44 +135,17 @@ def decompile(file_name):
     }
     strings = []
 
-    pos = 4
+    file_data.seek(4)
     target = script_data[SD_FUNCTIONS]
-    while pos < script_len:
-        if pos == main_script_start:
+    while file_data.tell() < script_len:
+        if file_data.tell() == main_script_start:
             target = script_data[SD_MAIN_SCRIPT]
 
-        opcode_id = struct.unpack('<B', file_data[pos:pos + 1])[0]
-        if opcode_id not in opcodes:
-            raise RuntimeError('Unknown opcode: %x at loc: %x' % (opcode_id, pos))
-        func = {
-            FN_POS: pos,
-            FN_ID: opcode_id,
-            FN_ARGS: []
-        }
-        pos += 1
-
-        for type in opcodes[opcode_id]:
-            if type == 'b':
-                func[FN_ARGS].append(struct.unpack('<B', file_data[pos:pos + 1])[0])
-                pos += 1
-            elif type == 'w':
-                func[FN_ARGS].append(struct.unpack('<H', file_data[pos:pos + 2])[0])
-                pos += 2
-            elif type == 'd':
-                func[FN_ARGS].append(struct.unpack('<I', file_data[pos:pos + 4])[0])
-                pos += 4
-            elif type == 's':
-                string_len = struct.unpack('<B', file_data[pos:pos + 1])[0]
-                pos += 1
-                func[FN_ARGS].append(len(strings))
-                strings.append(file_data[pos:pos + string_len - 1])
-                pos += string_len
-            else:
-                raise RuntimeError('Variable type error for opcode %x at loc %x' % (opcode_id, pos))
-
+        func = read_func(file_data, strings)
         target.append(func)
 
-    script_data[SD_EXTRA_BINARY_DATA] = file_data[script_len + 4:]
+    file_data.seek(script_len + 4)
+    script_data[SD_EXTRA_BINARY_DATA] = file_data.read()
 
     with open('script.dat', 'wb') as script_file:
         marshal.dump(script_data, script_file)
@@ -121,50 +163,16 @@ def compile(file_name):
         if section == SD_MAIN_SCRIPT:
             main_script_start = pos
         for func in script_data[section]:
-            opcode_id = func[FN_ID]
-            if opcode_id not in opcodes:
-                raise RuntimeError('Unknown script opcode: %s' % opcode_id)
             jump_table[func[FN_POS]] = pos
-            pos += 1
-
-            for i, type in enumerate(opcodes[opcode_id]):
-                arg = func[FN_ARGS][i]
-                if type == 'b':
-                    pos += 1
-                elif type == 'w':
-                    pos += 2
-                elif type == 'd':
-                    pos += 4
-                elif type == 's':
-                    pos += 1
-                    pos += len(strings[arg]) + 1
+            pos += get_func_size(func, strings)
 
     #construct real data
     new_file_data = BytesIO()
     for section in [SD_FUNCTIONS, SD_MAIN_SCRIPT]:
         for func in script_data[section]:
-            opcode_id = func[FN_ID]
-            if opcode_id not in opcodes:
-                raise RuntimeError('Unknown script opcode: %s' % opcode_id)
-            new_file_data.write(struct.pack('<B', opcode_id))
-
-            for i, type in enumerate(opcodes[opcode_id]):
-                arg = func[FN_ARGS][i]
-                if type == 'b':
-                    new_file_data.write(struct.pack('<B', arg))
-                elif type == 'w':
-                    new_file_data.write(struct.pack('<H', arg))
-                elif type == 'd':
-                    if opcode_id == 0x2 or opcode_id == 0x6 or opcode_id == 0x7:
-                        new_file_data.write(struct.pack('<I', jump_table[arg]))
-                    else:
-                        new_file_data.write(struct.pack('<I', arg))
-                elif type == 's':
-                    new_file_data.write(struct.pack('<B', len(strings[arg]) + 1))
-                    new_file_data.write(strings[arg])
-                    new_file_data.write(b'\0')
-                else:
-                    raise RuntimeError('Variable type error for opcode %x' % (opcode_id))
+            if func[FN_ID] in [2, 6, 7]:
+                func[FN_ARGS][0] = jump_table[func[FN_ARGS][0]]
+            write_func(new_file_data, func, strings)
 
     with open(file_name, 'wb') as hcb_file:
         hcb_file.write(struct.pack('<I', new_file_data.tell() + 4))
