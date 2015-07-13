@@ -38,6 +38,9 @@ Caveats:
 Script (de)compiler (original author -
 [SaintLouisX](http://www.hongfire.com/forum/showthread.php/433568))
 
+**There are known problems with the script compiler. For another compiler, see
+[akerou/fvp](https://github.com/akerou/fvp).**
+
 Modifications from original version:
 
 - Python 3 support
